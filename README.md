@@ -1,5 +1,5 @@
 # VariableToolPkg
-這是一份針對 UEFI 變數操作應用程式 (`VariableApp.c`) 中所使用的關鍵函數的學習筆記 (README 版)。這份筆記整理了 API 的功能、參數意義、回傳值處理以及在程式碼中的實際應用技巧。
+
 
 ---
 
