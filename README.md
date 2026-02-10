@@ -20,15 +20,15 @@ Delete variable：刪除指定變數（Name + Vendor GUID）
 2. 依賴協定/全域表
 | 物件            | 來源                            | 用途                                  |
 
-| ------------- | ----------------------------- | ----------------------------------- |
+| -------------   | ----------------------------- | ----------------------------------- |
 
-| `gRT`         | `UefiRuntimeServicesTableLib` | Get/Set/GetNextVariableName（變數操作核心） |
+| `gRT`           | `UefiRuntimeServicesTableLib` | Get/Set/GetNextVariableName（變數操作核心） |
 
-| `gBS`         | `UefiBootServicesTableLib`    | Stall（UI 輪詢鍵盤時避免忙等）、Allocate 等      |
+| `gBS`           | `UefiBootServicesTableLib`    | Stall（UI 輪詢鍵盤時避免忙等）、Allocate 等      |
 
-| `gST->ConIn`  | System Table                  | 鍵盤輸入 `ReadKeyStroke()`              |
+| `gST->ConIn`    | System Table                  | 鍵盤輸入 `ReadKeyStroke()`              |
 
-| `gST->ConOut` | System Table                  | 清畫面、設定顏色、游標定位、QueryMode 取欄列數        |
+| `gST->ConOut`   | System Table                  | 清畫面、設定顏色、游標定位、QueryMode 取欄列數        |
 
 3. 功能與流程總覽
 
