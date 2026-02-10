@@ -19,13 +19,19 @@ Delete variable：刪除指定變數（Name + Vendor GUID）
 
 2. 依賴協定/全域表
 | 物件            | 來源                            | 用途                                  |
+
 | ------------- | ----------------------------- | ----------------------------------- |
+
 | `gRT`         | `UefiRuntimeServicesTableLib` | Get/Set/GetNextVariableName（變數操作核心） |
+
 | `gBS`         | `UefiBootServicesTableLib`    | Stall（UI 輪詢鍵盤時避免忙等）、Allocate 等      |
+
 | `gST->ConIn`  | System Table                  | 鍵盤輸入 `ReadKeyStroke()`              |
+
 | `gST->ConOut` | System Table                  | 清畫面、設定顏色、游標定位、QueryMode 取欄列數        |
 
 3. 功能與流程總覽
+
 3.1 List all variables（表格模式）
 
 目標： 快速列出所有變數，顯示三欄，不做 hex dump。
@@ -79,7 +85,9 @@ gRT->GetVariable() 兩段式拿資料（先問大小再取資料）
 3.3 Search variables by vendor GUID（mask 輸入 + 詳細模式）
 
 目標： 進入畫面後顯示 GUID mask：
+
 ________-____-____-____-____________
+
 使用者輸入 hex 時，從左到右逐格把 _ 替換掉（自動略過 -）。
 
 流程：
@@ -125,6 +133,7 @@ EFI_VARIABLE_RUNTIME_ACCESS
 目標： 刪除變數（UEFI 標準刪除語意）。
 
 刪除規則（很重要）：
+
 呼叫 SetVariable() 並且：
 
 Attributes = 0
@@ -134,15 +143,18 @@ DataSize = 0
 Data = NULL
 
 4. 核心 UEFI API 使用方法（必背）
+
 4.1 GetNextVariableName()：列舉所有變數
 
 用途： 取得下一個 Variable Name + Vendor GUID（像 iterator）。
+
 EFI_STATUS
 (EFIAPI *GET_NEXT_VARIABLE_NAME)(
   IN OUT UINTN    *VariableNameSize,
   IN OUT CHAR16   *VariableName,
   IN OUT EFI_GUID *VendorGuid
 );
+
 用法要點：
 
 VariableNameSize 是 bytes（不是 CHAR16 數量）
@@ -168,6 +180,7 @@ buffer too small -> reallocate
 not found -> break
 
 4.2 GetVariable()：取得變數 Attributes / Data / Size
+
 EFI_STATUS
 (EFIAPI *GET_VARIABLE)(
   IN     CHAR16   *VariableName,
@@ -176,6 +189,7 @@ EFI_STATUS
   IN OUT UINTN    *DataSize,
   OUT    VOID     *Data
 );
+
 兩段式拿資料（標準寫法）：
 
 Data=NULL 先問大小
@@ -236,12 +250,14 @@ EFI_OUT_OF_RESOURCES（NVRAM 空間不足）
 EFI_WRITE_PROTECTED / EFI_SECURITY_VIOLATION
 
 5. UI / 鍵盤輸入用到的函數
+
 5.1 ReadKeyStroke()：輪詢鍵盤
 EFI_STATUS
 (EFIAPI *EFI_INPUT_READ_KEY)(
   IN  EFI_SIMPLE_TEXT_INPUT_PROTOCOL *This,
   OUT EFI_INPUT_KEY                  *Key
 );
+
 行為：
 
 沒鍵可讀：EFI_NOT_READY
@@ -257,6 +273,7 @@ Key.UnicodeChar（一般字元、Enter、Backspace）
 while(ReadKeyStroke == NOT_READY) Stall(1000)
 
 5.2 QueryMode()：取得畫面欄列數（修你之前 Columns 編譯問題）
+
 EFI_STATUS
 (EFIAPI *EFI_TEXT_QUERY_MODE)(
   IN  EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
@@ -264,7 +281,9 @@ EFI_STATUS
   OUT UINTN                           *Columns,
   OUT UINTN                           *Rows
 );
+
 6. GUID mask 輸入（你的重點功能）
+
 6.1 介面行為規格（你要的）
 
 初始顯示：
@@ -296,8 +315,11 @@ PromptVendorGuidMasked()：統一 Search/Create/Delete 的 GUID 輸入流程
 
 7. 編譯/執行（提醒）
 
+
 你之前遇到的 Columns 編譯錯誤：
+
 不要用 gST->ConOut->Mode->Columns（UEFI MODE 沒這欄）
+
 改用 QueryMode()。
 
 Variable 讀寫在不同平台差異很大：
@@ -306,6 +328,7 @@ OVMF（QEMU）可能比較開放
 
 真機 BIOS 可能很多變數被鎖、Secure Boot 影響、寫入受限
 ____________________________________________________________
+
 cd /d D:\BIOS\MyWorkSpace\edk2
 
 edksetup.bat Rebuild
