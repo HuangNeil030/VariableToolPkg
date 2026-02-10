@@ -1,332 +1,287 @@
 # VariableToolPkg
-VariableTool README（筆記版）
-1. 這支工具在做什麼
+這是一份針對 UEFI 變數操作應用程式 (`VariableApp.c`) 中所使用的關鍵函數的學習筆記 (README 版)。這份筆記整理了 API 的功能、參數意義、回傳值處理以及在程式碼中的實際應用技巧。
 
-VariableTool 是一個 UEFI Shell Application，用來操作 UEFI NVRAM 變數（UEFI Variables）：
+---
 
-List all variables（表格）：只列出
-Variable Name | Data Size | Vendor GUID（可翻頁/捲動）
+# UEFI 變數應用程式開發筆記 (README)
 
-Search by name（詳細輸出）：輸入變數名稱，搜尋所有 GUID，印出變數內容（hex dump）
+## 1. 核心變數服務 (UEFI Runtime Services)
 
-Search by vendor GUID（mask 輸入）：輸入 GUID（用 ________-____-.... mask），找同 GUID 的所有變數（印詳細）
+這些函數位於 `gRT` (Runtime Services) 表中，用於操作 UEFI 環境變數 (NVRAM)。
 
-Create new variable：建立變數（以 CHAR16 字串儲存 value）
+### 1.1 `GetVariable` - 讀取變數
 
-Delete variable：刪除指定變數（Name + Vendor GUID）
+**功能**：獲取指定變數的值 (Data) 或其大小 (DataSize)。
 
-核心概念：UEFI Variable Services 都在 Runtime Services (gRT)
-
-2. 依賴協定/全域表
-| 物件            | 來源                            | 用途                                  |
-
-| -------------   | ----------------------------- | ----------------------------------- |
-
-| `gRT`           | `UefiRuntimeServicesTableLib` | Get/Set/GetNextVariableName（變數操作核心） |
-
-| `gBS`           | `UefiBootServicesTableLib`    | Stall（UI 輪詢鍵盤時避免忙等）、Allocate 等      |
-
-| `gST->ConIn`    | System Table                  | 鍵盤輸入 `ReadKeyStroke()`              |
-
-| `gST->ConOut`   | System Table                  | 清畫面、設定顏色、游標定位、QueryMode 取欄列數        |
-
-3. 功能與流程總覽
-
-3.1 List all variables（表格模式）
-
-目標： 快速列出所有變數，顯示三欄，不做 hex dump。
-
-流程：
-
-CollectAllVariables()
-
-用 GetNextVariableName() 一筆一筆列舉
-
-每筆用 GetVariable(Data=NULL) 快速拿 DataSize
-
-保存到 VAR_ITEM[]（Name/GUID/DataSize）
-
-DoListAll() 進入 UI 事件迴圈
-
-Up/Down / PgUp/PgDn / Home/End / Esc
-
-DrawListAllTable() 每次重畫畫面
-
-關鍵 API：
-
-gRT->GetNextVariableName()
-
-gRT->GetVariable()（只問大小）
-
-gST->ConIn->ReadKeyStroke()
-
-gST->ConOut->ClearScreen() / SetCursorPosition() / QueryMode()
-
-3.2 Search variables by name（詳細模式）
-
-目標： 輸入變數名稱（Name），跨 GUID 搜尋，印詳細（含 Data hex dump）。
-
-流程：
-
-ReadLine() 讀取 Name
-
-ListOrFilterVariablesDetailed(FilterByName=TRUE)
-
-每個符合者呼叫 PrintOneVariableDetailed()
-
-關鍵 API：
-
-gRT->GetNextVariableName() 列舉所有變數
-
-StrCmp() 比對名稱
-
-gRT->GetVariable() 兩段式拿資料（先問大小再取資料）
-
-3.3 Search variables by vendor GUID（mask 輸入 + 詳細模式）
-
-目標： 進入畫面後顯示 GUID mask：
-
-________-____-____-____-____________
-
-使用者輸入 hex 時，從左到右逐格把 _ 替換掉（自動略過 -）。
-
-流程：
-
-PromptVendorGuidMasked()
-
-ReadGuidMaskedLine()：負責 mask UI + 輸入行為
-
-空輸入 => 使用 Default GUID
-
-未填滿就 Enter => 視為錯誤（not complete）
-
-填滿 => ParseGuidString() 轉 EFI_GUID
-
-ListOrFilterVariablesDetailed(FilterByGuid=TRUE) 列舉並過濾 GUID
-
-PrintOneVariableDetailed() 印出內容
-
-3.4 Create new variable（Name + Vendor GUID mask + Value）
-
-目標： 建立/更新變數。
-
-流程：
-
-ReadLine() 輸入 Name
-
-PromptVendorGuidMasked() 輸入/使用 Default GUID（mask 行為一致）
-
-ReadLine() 輸入 Value（本工具以 CHAR16 字串存入）
-
-gRT->SetVariable() 寫入
-
-屬性 Attributes：
-
-EFI_VARIABLE_NON_VOLATILE
-
-EFI_VARIABLE_BOOTSERVICE_ACCESS
-
-EFI_VARIABLE_RUNTIME_ACCESS
-
-3.5 Delete variable（Name + Vendor GUID mask）
-
-目標： 刪除變數（UEFI 標準刪除語意）。
-
-刪除規則（很重要）：
-
-呼叫 SetVariable() 並且：
-
-Attributes = 0
-
-DataSize = 0
-
-Data = NULL
-
-4. 核心 UEFI API 使用方法（必背）
-
-4.1 GetNextVariableName()：列舉所有變數
-
-用途： 取得下一個 Variable Name + Vendor GUID（像 iterator）。
-
-EFI_STATUS
-(EFIAPI *GET_NEXT_VARIABLE_NAME)(
-  IN OUT UINTN    *VariableNameSize,
-  IN OUT CHAR16   *VariableName,
-  IN OUT EFI_GUID *VendorGuid
+* **原型**：
+```c
+EFI_STATUS GetVariable (
+  IN CHAR16     *VariableName,
+  IN EFI_GUID   *VendorGuid,
+  OUT UINT32    *Attributes OPTIONAL,
+  IN OUT UINTN  *DataSize,
+  OUT VOID      *Data OPTIONAL
 );
 
-用法要點：
+```
 
-VariableNameSize 是 bytes（不是 CHAR16 數量）
 
-第一次列舉：VariableName = L""，VendorGuid = {0}
+* **參數重點**：
+* `VariableName`：變數名稱字串 (NULL 結尾)。
+* `VendorGuid`：廠商唯一識別碼。
+* `DataSize`：**輸入**時表示 Buffer 大小；**輸出**時表示變數實際資料大小。
+* `Data`：用於存放資料的緩衝區。
 
-回傳：
 
-EFI_SUCCESS：拿到下一筆
+* **關鍵用法 (技巧)**：
+1. 
+**取得資料大小 (探路)**：傳入 `Data = NULL` 且 `DataSize = 0`。若變數存在，會回傳 `EFI_BUFFER_TOO_SMALL`，並將實際大小填入 `DataSize` 。
 
-EFI_NOT_FOUND：列舉完畢
 
-EFI_BUFFER_TOO_SMALL：buffer 不夠，VariableNameSize 會回報需要大小 → 重新 Allocate 再呼叫
+2. **讀取資料**：根據取得的大小 `AllocatePool` 分配記憶體，再呼叫一次 `GetVariable` 讀取內容。
 
-典型 pattern：
 
-allocate buffer
+* **程式碼範例**：
+```c
+// 第一次呼叫：取得大小
+DataSize = 0;
+Status = gRT->GetVariable(Name, &Guid, NULL, &DataSize, NULL);
+if (Status == EFI_BUFFER_TOO_SMALL) {
+    // 分配記憶體並第二次呼叫
+    Data = AllocatePool(DataSize);
+    gRT->GetVariable(Name, &Guid, NULL, &DataSize, Data);
+}
 
-while loop
+```
 
-buffer too small -> reallocate
 
-not found -> break
 
-4.2 GetVariable()：取得變數 Attributes / Data / Size
+### 1.2 `GetNextVariableName` - 遍歷變數
 
-EFI_STATUS
-(EFIAPI *GET_VARIABLE)(
-  IN     CHAR16   *VariableName,
-  IN     EFI_GUID *VendorGuid,
-  OUT    UINT32   *Attributes OPTIONAL,
-  IN OUT UINTN    *DataSize,
-  OUT    VOID     *Data
+**功能**：列舉系統中所有的變數名稱與 GUID。
+
+* **原型**：
+```c
+EFI_STATUS GetNextVariableName (
+  IN OUT UINTN     *VariableNameSize,
+  IN OUT CHAR16    *VariableName,
+  IN OUT EFI_GUID  *VendorGuid
 );
 
-兩段式拿資料（標準寫法）：
+```
 
-Data=NULL 先問大小
 
-常見回傳：EFI_BUFFER_TOO_SMALL（代表大小已回傳到 DataSize）
+* **參數重點**：
+* `VariableNameSize`：輸入緩衝區大小，若太小會被更新為所需大小。
+* 
+`VariableName`：**輸入**為上一個變數名稱 (或空字串開始)；**輸出**為下一個變數名稱 。
 
-Allocate(DataSize) 再呼叫一次取得資料
 
-常見回傳碼：
+* `VendorGuid`：輸出對應的 GUID。
 
-EFI_NOT_FOUND：變數不存在
 
-EFI_BUFFER_TOO_SMALL：buffer 太小（正常流程會遇到）
+* **關鍵用法 (技巧)**：
+1. 
+**開始遍歷**：第一次呼叫時，`VariableName` 的第一個字元必須設為 `L'\0'` (空字串) 。
 
-EFI_SECURITY_VIOLATION / EFI_WRITE_PROTECTED：受平台安全/鎖定限制
 
-4.3 SetVariable()：建立/更新/刪除變數
+2. 
+**處理緩衝區不足**：若回傳 `EFI_BUFFER_TOO_SMALL`，需 `ReallocatePool` 擴大緩衝區並**重試** 。
 
-EFI_STATUS
-(EFIAPI *SET_VARIABLE)(
-  IN CHAR16   *VariableName,
-  IN EFI_GUID *VendorGuid,
-  IN UINT32   Attributes,
-  IN UINTN    DataSize,
-  IN VOID     *Data
+
+3. 
+**結束條件**：當回傳 `EFI_NOT_FOUND` 時表示遍歷結束 。
+
+
+
+
+* **程式碼範例**：
+```c
+VariableName[0] = L'\0'; // 初始為空
+while (TRUE) {
+    Status = gRT->GetNextVariableName(&Size, Name, &Guid);
+    if (Status == EFI_NOT_FOUND) break;
+    // ... 處理變數 ...
+}
+
+```
+
+
+
+### 1.3 `SetVariable` - 建立/修改/刪除變數
+
+**功能**：寫入變數資料。若資料大小為 0，則視為刪除。
+
+* **原型**：
+```c
+EFI_STATUS SetVariable (
+  IN CHAR16    *VariableName,
+  IN EFI_GUID  *VendorGuid,
+  IN UINT32    Attributes,
+  IN UINTN     DataSize,
+  IN VOID      *Data
 );
 
-建立/更新
-
-Attributes 常用三合一：NV | BS | RT
-
-DataSize 用 bytes
-
-Data 指向資料
-
-刪除（UEFI 標準語意）
-
-Status = gRT->SetVariable(Name, &Guid, 0, 0, NULL);
-
-常見回傳碼：
-
-EFI_SUCCESS
-
-EFI_INVALID_PARAMETER
-
-EFI_OUT_OF_RESOURCES（NVRAM 空間不足）
-
-EFI_WRITE_PROTECTED / EFI_SECURITY_VIOLATION
-
-常見回傳碼：
-
-EFI_SUCCESS
-
-EFI_INVALID_PARAMETER
-
-EFI_OUT_OF_RESOURCES（NVRAM 空間不足）
-
-EFI_WRITE_PROTECTED / EFI_SECURITY_VIOLATION
-
-5. UI / 鍵盤輸入用到的函數
-
-5.1 ReadKeyStroke()：輪詢鍵盤
-EFI_STATUS
-(EFIAPI *EFI_INPUT_READ_KEY)(
-  IN  EFI_SIMPLE_TEXT_INPUT_PROTOCOL *This,
-  OUT EFI_INPUT_KEY                  *Key
-);
-
-行為：
-
-沒鍵可讀：EFI_NOT_READY
-
-有鍵：EFI_SUCCESS，Key 會帶：
-
-Key.ScanCode（方向鍵、PgUp、Esc…）
-
-Key.UnicodeChar（一般字元、Enter、Backspace）
-
-典型 UI loop：
-
-while(ReadKeyStroke == NOT_READY) Stall(1000)
-
-5.2 QueryMode()：取得畫面欄列數（修你之前 Columns 編譯問題）
-
-EFI_STATUS
-(EFIAPI *EFI_TEXT_QUERY_MODE)(
-  IN  EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
-  IN  UINTN                           ModeNumber,
-  OUT UINTN                           *Columns,
-  OUT UINTN                           *Rows
-);
-
-6. GUID mask 輸入（你的重點功能）
-
-6.1 介面行為規格（你要的）
-
-初始顯示：
-________-____-____-____-____________
-
-輸入 hex：
-
-從最左開始依序把 _ 替換成你輸入的字元
-
-自動跳過 -
-
-Backspace：
-
-回到上一個 hex 位，把它恢復 _
-
-Enter：
-
-完全沒輸入 → 視為「使用 Default GUID」
-
-有輸入但未填滿 → 視為錯誤（not complete）
-
-6.2 相關函式
-
-ReadGuidMaskedLine()：mask UI + 逐格替換/回退
-
-ParseGuidString()：把完成的字串轉 EFI_GUID
-
-PromptVendorGuidMasked()：統一 Search/Create/Delete 的 GUID 輸入流程
-
-7. 編譯/執行（提醒）
+```
 
 
-你之前遇到的 Columns 編譯錯誤：
+* **參數重點**：
+* 
+`Attributes`：屬性位元遮罩 (如 `NON_VOLATILE`, `BOOTSERVICE_ACCESS`) 。
 
-不要用 gST->ConOut->Mode->Columns（UEFI MODE 沒這欄）
 
-改用 QueryMode()。
+* 
+`DataSize`：資料大小。**設為 0 代表刪除變數** 。
 
-Variable 讀寫在不同平台差異很大：
 
-OVMF（QEMU）可能比較開放
 
-真機 BIOS 可能很多變數被鎖、Secure Boot 影響、寫入受限
+
+* **屬性 (Attributes)**：
+* 
+`0x00000001` (NV): 非揮發性 (斷電保存) 。
+
+
+* 
+`0x00000002` (BS): Boot Services 期間可存取 。
+
+
+* 
+`0x00000004` (RT): Runtime 期間可存取 (必須搭配 BS) 。
+
+
+
+
+* **關鍵用法 (技巧)**：
+1. 
+**刪除變數**：`SetVariable(Name, Guid, 0, 0, NULL)` 。
+
+
+2. **建立變數**：必須指定正確的 `Attributes`，否則可能建立失敗或無法保存。
+
+
+
+---
+
+## 2. 輸出入服務 (UEFI Boot Services & Console)
+
+用於實作 UI 介面，如選單顯示、顏色控制與按鍵讀取。
+
+### 2.1 `gST->ConOut->SetAttribute` - 設定顏色
+
+**功能**：設定文字的前景與背景顏色。
+
+* **參數**：`Attribute` (1 Byte)。
+* 低 4 位元 (0-3)：文字顏色 (Foreground) 。
+
+
+* 高 3 位元 (4-6)：背景顏色 (Background) 。
+
+
+
+
+* **常用顏色定義**：
+* 
+`EFI_WHITE` (0x0F), `EFI_BLACK` (0x00), `EFI_LIGHTGREEN` (0x0A), `EFI_BLUE` (0x01) 。
+
+
+* 
+`EFI_BACKGROUND_BLUE` (0x10), `EFI_BACKGROUND_BLACK` (0x00) 。
+
+
+
+
+* **應用**：
+* `SetAttribute(gST->ConOut, EFI_WHITE | EFI_BACKGROUND_BLUE)`：製作藍底白字的選單 Highlight 效果。
+
+
+
+### 2.2 `gST->ConOut->ClearScreen` - 清除螢幕
+
+**功能**：清除螢幕內容並將游標移回 (0,0) 。
+
+* **注意**：清除後的背景色取決於最後一次 `SetAttribute` 設定的背景色。
+
+### 2.3 `gBS->WaitForEvent` & `gST->ConIn->ReadKeyStroke` - 讀取按鍵
+
+**功能**：實作 `WaitKey` 函數，暫停程式直到使用者按鍵。
+
+* **WaitForEvent**：
+* 參數 `NumberOfEvents`: 1。
+* 參數 `Event`: `gST->ConIn->WaitForKey` (等待鍵盤輸入事件) 。
+
+
+* 功能：阻塞程式執行，直到鍵盤緩衝區有資料。
+
+
+* **ReadKeyStroke**：
+* 參數 `Key`: `EFI_INPUT_KEY` 結構 (包含 `ScanCode` 與 `UnicodeChar`) 。
+
+
+* 功能：從緩衝區取出按鍵資料。
+
+
+* **按鍵判斷**：
+* 
+`ScanCode`: 處理特殊鍵 (如 `SCAN_UP`, `SCAN_DOWN`, `SCAN_ESC`) 。
+
+
+* 
+`UnicodeChar`: 處理字元鍵 (如 'a', '1', Enter `CHAR_CARRIAGE_RETURN`) 。
+
+
+
+
+
+---
+
+## 3. 輔助函式庫 (Library Functions)
+
+在 `VariableApp.c` 中常用到的標準函式庫功能。
+
+* **`AllocatePool` / `AllocateZeroPool**`: 動態分配記憶體 (類似 `malloc`)，用於儲存變數名稱或內容。
+* **`FreePool`**: 釋放記憶體 (類似 `free`)。
+* **`CopyMem`**: 複製記憶體內容 (類似 `memcpy`)，用於備份變數列表。
+* **`StrCmp` / `StrStr**`: 字串比較與搜尋。`StrStr` 用於實作關鍵字搜尋功能。
+* **`StrToGuid`**: 將字串 (如 "12345678-...") 解析為 `EFI_GUID` 結構，用於自定義 GUID 輸入。
+* **`Print`**: 格式化輸出到螢幕。
+* `%s`: Unicode 字串。
+* `%g`: GUID 格式 (EDKII 特有)。
+* `%02X`: 2位數 Hex (用於 Hex Dump)。
+
+
+
+---
+
+## 4. 程式邏輯流程圖 (簡易版)
+
+**主程式 (UefiMain)**
+
+1. 初始化：隱藏游標 `EnableCursor(FALSE)`。
+2. 無窮迴圈 `while(TRUE)`：
+* `ClearScreen` 清畫面。
+* 繪製選單 (使用 `SetAttribute` 高亮當前選項)。
+* `WaitKey` 等待按鍵。
+* 根據按鍵更新索引 (`Index`) 或執行功能 (`switch-case`)。
+
+
+
+**功能：List All Variables**
+
+1. `GetNextVariableName` 迴圈掃描所有變數。
+2. 將變數資訊 (`Name`, `Guid`, `Size`) 存入動態陣列 (`VarList`)。
+3. 進入分頁迴圈：
+* 計算 `StartIndex` 與 `EndIndex`。
+* 印出該頁變數 (`Print` 配合 `%-40s` 對齊)。
+* 等待翻頁按鍵 (`PgUp`/`PgDn`)。
+
+
+
+**功能：Search by Name**
+
+1. 輸入關鍵字。
+2. `GetNextVariableName` 迴圈掃描。
+3. 使用 `StrStr` 檢查名稱是否包含關鍵字。
+4. 若符合，呼叫 `GetVariable` 讀取資料並 `PrintVariableData` (綠色 Hex Dump)。
 ____________________________________________________________
 
 cd /d D:\BIOS\MyWorkSpace\edk2
