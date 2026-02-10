@@ -1,0 +1,23 @@
+[Defines]
+  INF_VERSION                    = 0x0001001A
+  BASE_NAME                      = VariableTool
+  FILE_GUID                     = 4e86910b-9372-4704-addb-e97c854b08a7
+  MODULE_TYPE                   = UEFI_APPLICATION
+  VERSION_STRING                = 1.0
+  ENTRY_POINT                   = UefiMain
+
+[Sources]
+  VariableTool.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  UefiLib
+  UefiApplicationEntryPoint
+  UefiBootServicesTableLib
+  UefiRuntimeServicesTableLib
+  BaseLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  PrintLib

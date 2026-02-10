@@ -1,0 +1,637 @@
+使用相關函數
+
+EFI_SIMPLE_TEXT_INPUT_PROTOCOL.ReadKeyStroke()
+
+Summary
+Reads the next keystroke from the input device
+
+Prototype
+
+typedef
+EFI_STATUS
+(EFIAPI *EFI_INPUT_READ_KEY) (
+ IN EFI_SIMPLE_TEXT_INPUT_PROTOCOL *This,
+OUT EFI_INPUT_KEY                  *Key
+ );
+
+Parameters
+
+This: A pointer to the EFI_SIMPLE_TEXT_INPUT_PROTOCOL instance. 
+Type EFI_SIMPLE_TEXT_INPUT_PROTOCOL is defined in Section 12.3
+
+Key: A pointer to a buffer that is filled in with the keystroke information 
+for the key that was pressed. Type EFI_INPUT_KEY is defined in 
+“Related Definitions” below
+
+Description
+The ReadKeyStroke() function reads the next keystroke from the input device. If there is no pending 
+keystroke the function returns EFI_NOT_READY. If there is a pending keystroke, then ScanCode is the EFI scan code defined in Table 12-2. The UnicodeChar is the actual printable character or is zero if the key does not represent a printable character (control key, function key, etc.). 
+
+Status Codes Returned
+
+EFI_SUCCESS       The keystroke information was returned.
+EFI_NOT_READY     There was no keystroke data available.
+EFI_DEVICE_ERROR  The keystroke information was not returned due to hardware errors.
+EFI_UNSUPPORTED   The device does not support the ability to read keystroke data.
+
+EFI_BOOT_SERVICES.WaitForEvent()
+Summary
+
+Stops execution until an event is signaled.
+
+Prototype
+
+typedef
+EFI_STATUS
+(EFIAPI *EFI_WAIT_FOR_EVENT) (
+   IN UINTN             NumberOfEvents,
+   IN EFI_EVENT         *Event,
+   OUT UINTN            *Index
+  );
+
+Parameters
+
+NumberOfEvents: The number of events in the Event array.
+
+Event: An array of EFI_EVENT. Type EFI_EVENT is defined in UEFI Forum, Inc. March 2021 148 EFI_BOOT_SERVICES.CreateEvent() function description.
+
+Index:　Pointer to the index of the event which satisfied the wait condition.
+
+Description
+
+This function must be called at priority level TPL_APPLICATION. If an attempt is made to call it at any other priority level, EFI_UNSUPPORTED is returned.
+
+The list of events in the Event array are evaluated in order from first to last, and this evaluation is repeated until an event is signaled or an error is detected. The following checks are performed on each event in the Event array.
+
+If an event is of type EVT_NOTIFY_SIGNAL, then EFI_INVALID_PARAMETER is returned and Index indicates the event that caused the failure.
+
+If an event is in the signaled state, the signaled state is cleared and EFI_SUCCESS is returned, and Index indicates the event that was signaled.
+
+If an event is not in the signaled state but does have a notification function, the notification function is queued at the event’s notification task priority level. If the execution of the event’s notification function causes the event to be signaled, then the signaled state is cleared, EFI_SUCCESS is returned, and Index indicates the event that was signaled.
+
+To wait for a specified time, a timer event must be included in the Event array.
+
+To check if an event is signaled without waiting, an already signaled event can be used as the last event in the list being checked, or the CheckEvent() interface may be used.
+
+Status Codes Returned
+
+EFI_SUCCESS             The event indicated by Index was signaled.
+EFI_INVALID_PARAMETER　 NumberOfEvents is 0.
+EFI_INVALID_PARAMETER   The event indicated by Index is of type EVT_NOTIFY_SIGNAL.
+EFI_UNSUPPORTED         The current TPL is not TPL_APPLICATION.
+
+EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.SetMode()
+Summary
+
+Sets the output device(s) to a specified mode.
+
+Prototype
+
+typedef
+EFI_STATUS
+(* EFIAPI EFI_TEXT_SET_MODE) (
+ IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL          *This,
+ IN UINTN                                    ModeNumber
+ );
+Parameters
+
+This: A pointer to the EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL instance. Type EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL is defined in the “Related Definitions” of Simple Text Output Protocol.
+
+ModeNumber: The text mode to set.
+
+Description
+
+The SetMode() function sets the output device(s) to the requested mode. On success the device is in the geometry for the requested mode, and the device has been cleared to the current background color with the cursor at (0,0).
+
+Status Codes Returned
+
+EFI_SUCCESS      The requested text mode was set.
+EFI_DEVICE_ERROR The device had an error and could not complete the request.
+EFI_UNSUPPORTED  The mode number was not valid.
+
+EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.ClearScreen()
+Summary
+
+Clears the output device(s) display to the currently selected background color.
+
+Prototype
+
+typedef
+EFI_STATUS
+(EFIAPI \*EFI_TEXT_CLEAR_SCREEN) (
+ IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL             *This
+ );
+Parameters
+
+This:　A pointer to the EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL instance. Type EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL is defined in the “Related Definitions” of Simple Text Output Protocol.
+
+Description
+
+The ClearScreen() function clears the output device(s) display to the currently selected background color. The cursor position is set to (0, 0).
+
+Status Codes Returned
+
+EFI_SUCCESS　　   The operation completed successfully.
+EFI_DEVICE_ERROR  The device had an error and could not complete the request.
+EFI_UNSUPPORTED   The output device is not in a valid text mode.
+
+EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.SetCursorPosition()
+Summary
+
+Sets the current coordinates of the cursor position.
+
+Prototype
+
+typedef
+EFI_STATUS
+(EFIAPI *EFI_TEXT_SET_CURSOR_POSITION) (
+ IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL             *This,
+ IN UINTN                                       Column,
+ IN UINTN                                       Row
+ );
+Parameters
+
+This: A pointer to the EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL instance. Type EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL is defined in the “Related Definitions” of Simple Text Output Protocol .
+
+Column, Row: The position to set the cursor to. Must greater than or equal to zero and less than the number of columns and rows returned by EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.QueryMode() .
+
+Description
+
+The SetCursorPosition() function sets the current coordinates of the cursor position. The upper left corner of the screen is defined as coordinate (0, 0).
+
+Status Codes Returned
+
+EFI_SUCCESS       The operation completed successfully.
+EFI_DEVICE_ERROR  The device had an error and could not complete the request.
+EFI_UNSUPPORTED   The output device is not in a valid text mode, or the cursor position is invalid for the current mode.
+
+EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.EnableCursor()
+Summary
+
+Makes the cursor visible or invisible.
+
+Prototype
+
+typedef
+EFI_STATUS
+(EFIAPI *EFI_TEXT_ENABLE_CURSOR) (
+ IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL             *This,
+ IN BOOLEAN                                     Visible
+ );
+Parameters
+
+This: A pointer to the EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL instance. Type EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL is defined in the “Related Definitions” of Simple Text Output Protocol .
+
+Visible:If TRUE, the cursor is set to be visible. If FALSE, the cursor is set to be invisible.
+
+Description
+
+The EnableCursor() function makes the cursor visible or invisible.
+
+Status Codes Returned
+
+EFI_SUCCESS       The operation completed successfully.
+EFI_DEVICE_ERROR  The device had an error and could not complete the request or the device does not support changing the cursor mode.
+EFI_UNSUPPORTED   The output device does not support visibility control of the cursor.
+
+EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.SetAttribute()
+Summary
+
+Sets the background and foreground colors for the OutputString(), EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.OutputString() and ClearScreen() EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.ClearScreen() functions.
+
+Prototype
+
+typedef
+EFI_STATUS
+(EFIAPI *EFI_TEXT_SET_ATTRIBUTE) (
+ IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL        *This,
+ IN UINTN                                  Attribute
+ );
+Parameters
+
+This
+A pointer to the EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL instance. Type EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL is defined inthe “Related Definitions” Simple Text Output Protocol .
+
+Attribute
+The attribute to set. Bits 0..3 are the foreground color, and bits 4..6 are the background color. All other bits are reserved. See “Related Definitions” below.
+
+Related Definitions
+
+//*******************************************************
+// Attributes
+//*******************************************************
+#define EFI_BLACK                              0x00
+#define EFI_BLUE                               0x01
+#define EFI_GREEN                              0x02
+#define EFI_CYAN                               0x03
+#define EFI_RED                                0x04
+#define EFI_MAGENTA                            0x05
+#define EFI_BROWN                              0x06
+#define EFI_LIGHTGRAY                          0x07
+#define EFI_BRIGHT                             0x08
+#define EFI_DARKGRAY(EFI_BLACK \| EFI_BRIGHT)  0x08
+#define EFI_LIGHTBLUE                          0x09
+#define EFI_LIGHTGREEN                         0x0A
+#define EFI_LIGHTCYAN                          0x0B
+#define EFI_LIGHTRED                           0x0C
+#define EFI_LIGHTMAGENTA                       0x0D
+#define EFI_YELLOW                             0x0E
+#define EFI_WHITE                              0x0F
+
+
+#define EFI_BACKGROUND_BLACK                   0x00
+#define EFI_BACKGROUND_BLUE                    0x10
+#define EFI_BACKGROUND_GREEN                   0x20
+#define EFI_BACKGROUND_CYAN                    0x30
+#define EFI_BACKGROUND_RED                     0x40
+#define EFI_BACKGROUND_MAGENTA                 0x50
+#define EFI_BACKGROUND_BROWN                   0x60
+#define EFI_BACKGROUND_LIGHTGRAY               0x70
+//
+// Macro to accept color values in their raw form to create
+// a value that represents both a foreground and background
+// color in a single byte.
+// For Foreground, and EFI_\* value is valid from EFI_BLACK(0x00)
+// to EFI_WHITE (0x0F).
+// For Background, only EFI_BLACK, EFI_BLUE, EFI_GREEN,
+// EFI_CYAN, EFI_RED, EFI_MAGENTA, EFI_BROWN, and EFI_LIGHTGRAY
+// are acceptable.
+//
+// Do not use EFI_BACKGROUND_xxx values with this macro.
+//#define EFI_TEXT_ATTR(Foreground,Background) \
+((Foreground) | ((Background) << 4))
+Description
+
+The SetAttribute() function sets the background and foreground colors for the OutputString() EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.OutputString() and ClearScreen() EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL.ClearScreen() functions.
+
+The color mask can be set even when the device is in an invalid text mode.
+
+Devices supporting a different number of text colors are required to emulate the above colors to the best of the device’s capabilities.
+
+Status Codes Returned
+
+EFI_SUCCESS       The requested attributes were set.
+EFI_DEVICE_ERROR  The device had an error and could not complete the request.
+
+
+
+___________________________________________________________________________________________________________________________________________________________________
+GetVariable()
+Summary
+
+Returns the value of a variable.
+
+Prototype
+
+typedef
+EFI_STATUS
+GetVariable (
+  IN CHAR16           *VariableName,
+  IN EFI_GUID         *VendorGuid,
+  OUT UINT32          *Attributes OPTIONAL,
+  IN OUT UINTN        *DataSize,
+  OUT VOID            *Data OPTIONAL
+ );
+Parameters
+
+VariableName
+A Null-terminated string that is the name of the vendor’s variable.
+
+VendorGuid
+A unique identifier for the vendor. Type EFI_GUID is defined in the EFI_BOOT_SERVICES.InstallProtocolInterface() function description.
+
+Attributes
+If not NULL, a pointer to the memory location to return the attributes bitmask for the variable. See “Related Definitions.” If not NULL, then Attributes is set on output both when EFI_SUCCESS and when EFI_BUFFER_TOO_SMALL is returned.
+
+DataSize
+On input, the size in bytes of the return Data buffer. On output the size of data returned in Data.
+
+Data
+The buffer to return the contents of the variable. May be NULL with a zero DataSize in order to determine the size buffer needed.
+
+Related Definitions
+
+//******************************************************
+// Variable Attributes
+//******************************************************
+#define EFI_VARIABLE_NON_VOLATILE                           0x00000001
+#define EFI_VARIABLE_BOOTSERVICE_ACCESS                     0x00000002
+#define EFI_VARIABLE_RUNTIME_ACCESS                         0x00000004
+#define EFI_VARIABLE_HARDWARE_ERROR_RECORD                  0x00000008 \
+//This attribute is identified by the mnemonic 'HR' elsewhere
+//in this specification.
+#define EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS             0x00000010
+//NOTE: EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS is deprecated
+//and should be considered reserved.
+#define EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS \0x00000020
+#define EFI_VARIABLE_APPEND_WRITE                           0x00000040
+#define EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS          0x00000080
+//This attribute indicates that the variable payload begins
+//with an EFI_VARIABLE_AUTHENTICATION_3 structure, and
+//potentially more structures as indicated by fields of this
+//structure. See definition below and in SetVariable().
+Description
+
+Each vendor may create and manage its own variables without the risk of name conflicts by using a unique VendorGuid. When a variable is set its Attributes are supplied to indicate how the data variable should be stored and maintained by the system. The attributes affect when the variable may be accessed and volatility of the data. If EFI_BOOT_SERVICES.ExitBootServices() has already been executed, data variables without the EFI_VARIABLE_RUNTIME_ACCESS attribute set will not be visible to GetVariable() and will return an EFI_NOT_FOUND error.
+
+If the Data buffer is too small to hold the contents of the variable, the error EFI_BUFFER_TOO_SMALL is returned and DataSize is set to the required buffer size to obtain the data.
+
+The EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS and the EFI_VARIABLE_ AUTHENTICATED_WRITE_ACCESS attributes may both be set in the returned Attributes bitmask parameter of a GetVariable() call, though it should be noted that the EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS attribute is deprecated and should no longer be used. The EFI_VARIABLE_APPEND_WRITE attribute will never be set in the returned Attributes bitmask parameter.
+
+Variables stored with the EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS attribute set will return metadata in addition to variable data when GetVariable() is called. If a GetVariable() call indicates that this attribute is set, the GetVariable() payload must be interpreted according to the metadata headers. In addition to the headers described in SetVariable(), the following header is used to indicate what certificate may be currently associated with a variable.
+
+//
+// EFI_VARIABLE_AUTHENTICATION_3_CERT_ID descriptor
+//
+// An extensible structure to identify a unique x509 cert
+// associated with a given variable
+//
+#define EFI_VARIABLE_AUTHENTICATION_3_CERT_ID_SHA256 1
+
+typedef struct {
+   UINT8          Type;
+   UINT32         IdSize;
+   // UINT8       Id[IdSize];
+}   EFI_VARIABLE_AUTHENTICATION_3_CERT_ID;
+Type
+Identifies the type of ID that is returned and how the ID should be interpreted.
+
+IdSize
+Indicates the size of the Id buffer that follows this field in the structure.
+
+Id (Not a formal structure member)
+This is a unique identifier for the associated certificate as defined by the Type field. For CERT_ID_SHA256, the buffer will be a SHA-256 digest of the tbsCertificate (To Be Signed Certificate data defined in x509) data for the cert.
+
+When the attribute EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS is set, the Data buffer shall be interpreted as follows:
+
+// NOTE: “||” indicates concatenation.
+
+// Example: EFI_VARIABLE_AUTHENTICATION_3_TIMESTAMP_TYPE
+
+EFI_VARIABLE_AUTHENTICATION_3 || EFI_TIME || EFI_VARIABLE_AUTHENTICATION_3_CERT_ID || Data
+
+// Example: EFI_VARIABLE_AUTHENTICATION_3_NONCE_TYPE
+
+EFI_VARIABLE_AUTHENTICATION_3 || EFI_VARIABLE_AUTHENTICATION_3_NONCE || EFI_VARIABLE_AUTHENTICATION_3_CERT_ID || Data
+
+NOTE: The MetadataSize field of the EFI_VARIABLE_AUTHENTICATION_3 structure in each of these examples does not include any WIN_CERTIFICATE_UEFI_GUID structures. These structures are used in the SetVariable() interface, not GetVariable(), as described in the above examples.
+
+Status Codes Returned
+
+EFI_SUCCESS             The function completed successfully.
+EFI_NOT_FOUND           The variable was not found.
+EFI_BUFFER_TOO_SMALL    The DataSize is too small for the result. DataSize has been updated with the size needed to complete the request. If Attributes is not NULL, then the attributes bitmask for the variable has been stored to the memory location pointed-to by Attributes.
+
+EFI_INVALID_PARAMETER   VariableName is NULL.
+EFI_INVALID_PARAMETER   VendorGuid is NULL.
+EFI_INVALID_PARAMETER   DataSize is NULL.
+EFI_INVALID_PARAMETER   The DataSize is not too small and Data is NULL.
+EFI_DEVICE_ERROR        The variable could not be retrieved due to a hardware error.
+
+EFI_SECURITY_VIOLATION   The variable could not be retrieved due to an authentication failure.
+
+EFI_UNSUPPORTED          After ExitBootServices() has been called, this return code may be returned if no variable storage is supported. The platform should describe this runtime service as unsupported at runtime via an EFI_RT_PROPERTIES_TABLE configuration table.
+
+GetNextVariableName()
+Summary
+
+Enumerates the current variable names.
+
+Prototype
+
+typedef
+EFI_STATUS
+GetNextVariableName (
+  IN OUT UINTN           *VariableNameSize,
+  IN OUT CHAR16          *VariableName,
+  IN OUT EFI_GUID        *VendorGuid
+ );
+Parameters
+
+VariableNameSize
+The size of the VariableName buffer. The size must be large enough to fit input string supplied in VariableName buffer.
+
+VariableName
+On input, supplies the last VariableName that was returned by * GetNextVariableName(). On output, returns the Null-terminated string of the current variable.
+
+VendorGuid
+On input, supplies the last VendorGuid that was returned by GetNextVariableName(). On output, returns the VendorGuid of the current variable. Type EFI_GUID is defined in the EFI_BOOT_SERVICES.InstallProtocolInterface() function description.
+
+Description
+
+GetNextVariableName() is called multiple times to retrieve the VariableName and VendorGuid of all variables currently available in the system. On each call to GetNextVariableName() the previous results are passed into the interface, and on output the interface returns the next variable name data. When the entire variable list has been returned, the error EFI_NOT_FOUND is returned.
+
+Note that if EFI_BUFFER_TOO_SMALL is returned, the VariableName buffer was too small for the next variable. When such an error occurs, the VariableNameSize is updated to reflect the size of buffer needed. In all cases when calling GetNextVariableName() the VariableNameSize must not exceed the actual buffer size that was allocated for VariableName. The VariableNameSize must not be smaller the size of the variable name string passed to GetNextVariableName() on input in the VariableName buffer.
+
+To start the search, a Null-terminated string is passed in VariableName; that is, VariableName is a pointer to a Null character. This is always done on the initial call to GetNextVariableName(). When VariableName is a pointer to a Null character, VendorGuid is ignored. GetNextVariableName() cannot be used as a filter to return variable names with a specific GUID. Instead, the entire list of variables must be retrieved, and the caller may act as a filter if it chooses. Calls to SetVariable() between calls to GetNextVariableName() may produce unpredictable results. If a VariableName buffer on input is not a Null-terminated string, EFI_INVALID_PARAMETER is returned. If input values of VariableName and VendorGuid are not a name and GUID of an existing variable, EFI_INVALID_PARAMETER is returned.
+
+Once EFI_BOOT_SERVICES.ExitBootServices() is performed, variables that are only visible during boot services will no longer be returned. To obtain the data contents or attribute for a variable returned by GetNextVariableName(), the GetVariable() interface is used.
+
+Status Codes Returned
+
+EFI_SUCCESS           The function completed successfully.
+EFI_NOT_FOUND         The next variable was not found.
+EFI_BUFFER_TOO_SMALL  The VariableNameSize is too small for the result. VariableNameSize has been updated with the size needed to complete the request.
+
+EFI_INVALID_PARAMETER   VariableNameSize is NULL.
+EFI_INVALID_PARAMETER   VariableName is NULL.
+EFI_INVALID_PARAMETER   VendorGuid is NULL.
+EFI_INVALID_PARAMETER   The input values of VariableName and VendorGuid are not a name and GUID of an existing variable.
+
+EFI_INVALID_PARAMETER   Null-terminator is not found in the first VariableNameSize bytes of the input VariableName buffer.
+
+EFI_DEVICE_ERROR      The variable name could not be retrieved due to a hardware error.
+
+EFI_UNSUPPORTED       After ExitBootServices() has been called, this return code may be returned if no variable storage is supported. The platform should describe this runtime service as unsupported at runtime via an EFI_RT_PROPERTIES_TABLE configuration table.
+
+SetVariable()
+Summary
+
+Sets the value of a variable. This service can be used to create a new variable, modify the value of an existing variable, or to delete an existing variable.
+
+Prototype
+
+ typedef
+ EFI_STATUS
+ SetVariable (
+   IN CHAR16            *VariableName,
+   IN EFI_GUID          *VendorGuid,
+   IN UINT32            Attributes,
+   IN UINTN             DataSize,
+   IN VOID              *Data
+);
+Parameters
+
+VariableName
+A Null-terminated string that is the name of the vendor’s variable. Each VariableName is unique for each VendorGuid. VariableName must contain 1 or more characters. If VariableName is an empty string, then EFI_INVALID_PARAMETER is returned.
+
+VendorGuid
+A unique identifier for the vendor. Type EFI_GUID is defined in the EFI_BOOT_SERVICES.InstallProtocolInterface() function description.
+
+Attributes
+Attributes bitmask to set for the variable. Refer to the GetVariable() function description.
+
+DataSize
+The size in bytes of the Data buffer. Unless the EFI_VARIABLE_APPEND_WRITE, EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS, EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS, or EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute is set, a size of zero causes the variable to be deleted. When the EFI_VARIABLE_APPEND_WRITE attribute is set, then a SetVariable() call with a DataSize of zero will not cause any change to the variable value (the timestamp associated with the variable may be updated however, even if no new data value is provided;see the description of the EFI_VARIABLE_AUTHENTICATION_2 descriptor below). In this case the DataSize will not be zero since the EFI_VARIABLE_AUTHENTICATION_2 descriptor will be populated).
+
+Data
+The contents for the variable.
+
+Related Definitions
+
+//******************************************************
+// Variable Attributes
+//******************************************************
+
+// NOTE: This interface is deprecated and should no longer be
+used!
+//
+// EFI_VARIABLE_AUTHENTICATION descriptor
+//
+// A counter-based authentication method descriptor template
+//
+typedef struct {
+  UINT64                       MonotonicCount;
+  WIN_CERTIFICATE_UEFI_GUID    AuthInfo;
+} EFI_VARIABLE_AUTHENTICATION;
+MonotonicCount
+Included in the signature of AuthInfo. Used to ensure freshness/no replay. Incremented during each “Write” access.
+
+AuthInfo
+Provides the authorization for the variable access. It is a signature across the variable data and the Monotonic Count value. Caller uses Private key that is associated with a public key that has been provisioned via the key exchange.
+
+//
+// EFI_VARIABLE_AUTHENTICATION_2 descriptor
+//
+// A time-based authentication method descriptor template
+//
+typedef struct {
+  EFI_TIME                      TimeStamp;
+  WIN_CERTIFICATE_UEFI_GUID     AuthInfo;
+} EFI_VARIABLE_AUTHENTICATION_2;
+TimeStamp
+Time associated with the authentication descriptor. For the TimeStamp value, components Pad1, Nanosecond, TimeZone, Daylight and Pad2 shall be set to 0. This means that the time shall always be expressed in GMT.
+
+AuthInfo
+Provides the authorization for the variable access. Only a CertType of EFI_CERT_TYPE_PKCS7_GUID is accepted.
+
+//
+// EFI_VARIABLE_AUTHENTICATION_3 descriptor
+//
+// An extensible implementation of the Variable Authentication
+// structure.
+//
+#define EFI_VARIABLE_AUTHENTICATION_3_TIMESTAMP_TYPE 1
+#define EFI_VARIABLE_AUTHENTICATION_3_NONCE_TYPE 2
+
+typedef struct {
+  UINT8 Version;
+  UINT8 Type;
+  UINT32 MetadataSize;
+  UINT32 Flags;
+} EFI_VARIABLE_AUTHENTICATION_3;
+Version
+This field is used in case the EFI_VARIABLE_AUTHENTICATION_3 structure itself ever requires updating. For now, it is hardcoded to “0x1”.
+
+Type
+Declares what structure immediately follows this structure in the Variable Data payload. For EFI_VARIABLE_AUTHENTICATION_3_TIMESTAMP_TYPE, it will be an instance of EFI_TIME (for the TimeStamp). For EFI_VARIABLE_AUTHENTICATION_3_NONCE_TYPE the structure will be an instance of EFI_VARIABLE_AUTHENTICATION_3_NONCE. This structure is defined below. Note that none of these structures contains a WIN_CERTIFICATE_UEFI_GUID structure. See Using the EFI_VARIABLE_AUTHENTICATION_3 descriptor for an explanation of structure sequencing.
+
+MetadataSize
+Declares the size of all variable authentication metadata (data related to the authentication of the variable that is not variable data itself), including this header structure, and type-specific structures (eg. EFI_VARIABLE_AUTHENTICATION_3_NONCE), and any WIN_CERTIFICATE_UEFI_GUID structures.
+
+Flags
+Bitfield indicating any optional configuration for this call. Currently, the only defined value is: #define EFI_VARIABLE_ENHANCED_AUTH_FLAG_UPDATE_CERT 0x00000001 The presence of this flag on SetVariable() indicates that there are two instances of the WIN_CERTIFICATE_UEFI_GUID structure following the type-specific structures. The first instance describes the new cert to be set as the authority for the variable. The second is the signed data to authorize the current updated.
+NOTE: All other bits are currently Reserved on SetVariable().
+NOTE: All flags are reserved on GetVariable().
+
+//
+// EFI_VARIABLE_AUTHENTICATION_3_NONCE descriptor
+//
+// A nonce-based authentication method descriptor template. This
+// structure will always be followed by a
+// WIN_CERTIFICATE_UEFI_GUID structure.
+//
+typedef struct {
+  UINT32 NonceSize;
+  // UINT8 Nonce[NonceSize];
+}  EFI_VARIABLE_AUTHENTICATION_3_NONCE;
+NonceSize
+Indicates the size of the Nonce buffer that follows this field in the structure. Must not be 0.
+
+Nonce (Not a formal structure member)
+Unique, random value that guarantees a signed payload cannot be shared between multiple machines or machine families. On SetVariable(), if the Nonce field is all 0’s, the host machine will try to use an internally generated random number. Will return EFI_UNSUPPORTED if not possible. Also, on SetVariable() if the variable already exists and the nonce is identical to the current nonce, will return EFI_INVALID_PARAMETER.
+
+Description
+
+Variables are stored by the firmware and may maintain their values across power cycles. Each vendor may create and manage its own variables without the risk of name conflicts by using a unique VendorGuid.
+
+Each variable has Attributes that define how the firmware stores and maintains the data value. If the EFI_VARIABLE_NON_VOLATILE attribute is not set, the firmware stores the variable in normal memory and it is not maintained across a power cycle. Such variables are used to pass information from one component to another. An example of this is the firmware’s language code support variable. It is created at firmware initialization time for access by EFI components that may need the information, but does not need to be backed up to nonvolatile storage.
+
+EFI_VARIABLE_NON_VOLATILE variables are stored in fixed hardware that has a limited storage capacity; sometimes a severely limited capacity. Software should only use a nonvolatile variable when absolutely necessary. In addition, if software uses a nonvolatile variable it should use a variable that is only accessible at boot services time if possible.
+
+A variable must contain one or more bytes of Data. Unless the EFI_VARIABLE_APPEND_WRITE, EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS, or EFI_VARIABLE_ENHANCED _AUTHENTICATED_ACCESS attribute is set (see below), using SetVariable() with a DataSize of zero will cause the entire variable to be deleted. The space consumed by the deleted variable may not be available until the next power cycle.
+
+If a variable with matching name, GUID, and attributes already exists, its value is updated.
+
+The Attributes have the following usage rules:
+
+If a preexisting variable is rewritten with different attributes, SetVariable() shall not modify the variable and shall return EFI_INVALID_PARAMETER. The only exception to this is when the only attribute differing is EFI_VARIABLE_APPEND_WRITE. In such cases the call’s successful outcome or not is determined by the actual value being written. There are two exceptions to this rule:
+
+— If a preexisting variable is rewritten with no access attributes specified, the variable will be deleted.
+
+— EFI_VARIABLE_APPEND_WRITE attribute presents a special case. It is acceptable to rewrite the variable with or without EFI_VARIABLE_APPEND_WRITE attribute.
+
+Setting a data variable with no access attributes causes it to be deleted.
+
+EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS is deprecated and should not be used. Platforms should return EFI_UNSUPPORTED if a caller to SetVariable() specifies this attribute.
+
+Unless the EFI_VARIABLE_APPEND_WRITE, EFI_VARIABLE_TIME_BASED_AUTHENTICATED _WRITE_ACCESS, or EFI_VARIABLE_ENHANCED_AUTHENTICATED_WRITE_ACCESS attribute is set, setting a data variable with zero DataSize specified, causes it to be deleted.
+
+Runtime access to a data variable implies boot service access. Attributes that have EFI_VARIABLE_RUNTIME_ACCESS set must also have EFI_VARIABLE_BOOTSERVICE_ACCESS set. The caller is responsible for following this rule.
+
+Once EFI_BOOT_SERVICES.ExitBootServices() is performed, data variables that did not have EFI_VARIABLE_RUNTIME_ACCESS set are no longer visible to GetVariable().
+
+Once ExitBootServices() is performed, only variables that have EFI_VARIABLE_RUNTIME_ACCESS and EFI_VARIABLE_NON_VOLATILE set can be set with SetVariable(). Variables that have runtime access but that are not nonvolatile are read-only data variables once ExitBootServices() is performed. When the EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS attribute is set in a SetVariable() call, the authentication shall use the EFI_VARIABLE_AUTHENTICATION_3 descriptor, which will be followed by any descriptors indicated in the Type and Flags fields.
+
+When the EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute is set in a SetVariable() call, the authentication shall use the EFI_VARIABLE_AUTHENTICATION_2 descriptor.
+
+If both the EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS and the EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS attribute are set in a SetVariable() call, then the firmware must return EFI_INVALID_PARAMETER.
+
+If the EFI_VARIABLE_APPEND_WRITE attribute is set in a SetVariable() call, then any existing variable value shall be appended with the value of the Data parameter. If the firmware does not support the append operation, then the SetVariable() call shall return EFI_INVALID_PARAMETER.
+
+If the EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute is set in a SetVariable() call, and firmware does not support signature type of the certificate included in the EFI_VARIABLE_AUTHENTICATION_2 descriptor, then the SetVariable() call shall return EFI_INVALID_PARAMETER. The list of signature types supported by the firmware is defined by the SignatureSupport variable. Signature type of the certificate is defined by its digest and encryption algorithms.
+
+If the EFI_VARIABLE_HARDWARE_ERROR_RECORD attribute is set, VariableName and VendorGuid must comply with the rules stated in Hardware Error Record Variables and Hardware Error Record Persistence Usage. Otherwise, the SetVariable() call shall return EFI_INVALID_PARAMETER.
+
+Globally Defined Variables must be created with the attributes defined in the Table Global Variables . If a globally defined variable is created with the wrong attributes, the result is indeterminate and may vary between implementations.
+
+If using the EFI_VARIABLE_ENHANCED_AUTHETICATED_ACCESS interface to update the cert authority for a given variable, it is valid for the Data region of the payload to be empty. This would update the cert without modifying the data itself. If the Data region is empty AND no NewCert is specified, the variable will be deleted (assuming all authorizations are verified).
+
+Secure Boot Policy Variable must be created with the EFI_VARIABLE_TIME_BASED_AUTHENTICATED _WRITE_ACCESS attribute set, and the authentication shall use the EFI_VARIABLE_AUTHENTICATION_2 descriptor. If the appropriate attribute bit is not set, then the firmware shall return EFI_INVALID_PARAMETER.
+
+The only rules the firmware must implement when saving a nonvolatile variable is that it has actually been saved to nonvolatile storage before returning EFI_SUCCESS, and that a partial save is not performed. If power fails during a call to SetVariable() the variable may contain its previous value, or its new value. In addition there is no read, write, or delete security protection.
+
+To delete a variable created with the EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute, SetVariable must be used with attributes matching the existing variable and the DataSize set to the size of the AuthInfo descriptor. The Data buffer must contain an instance of the AuthInfo descriptor which will be validated according to the steps in the appropriate section above referring to updates of Authenticated variables. An attempt to delete a variable created with the EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute for which the prescribed AuthInfo validation fails or when called using DataSize of zero will fail with an EFI_SECURITY_VIOLATION status.
+
+To delete a variable created with the EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS attribute, SetVariable must be used with attributes matching the existing variable and the DataSize set to the size of the entire payload including all descriptors and certificates. The Data buffer must contain an instance of the EFI_VARIABLE_AUTHENTICATION_3 descriptor which will indicate how to validate the payload according to the description in Using the EFI_VARIABLE_AUTHENTICATION_3 descriptor. An attempt to delete a variable created with the EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS attribute for which the prescribed validation fails or when called using DataSize of zero will fail with an EFI_SECURITY_VIOLATION status.
+
+Status Codes Returned
+
+EFI_SUCCESS           The firmware has successfully stored the variable and its data as defined by the Attributes.
+
+EFI_INVALID_PARAMETER  An invalid combination of attribute bits, name, and GUID was supplied, or the DataSize exceeds the maximum allowed.
+
+EFI_INVALID_PARAMETER  VariableName is an empty string.
+
+EFI_OUT_OF_RESOURCES   Not enough storage is available to hold the variable and its data.
+
+EFI_DEVICE_ERROR       The variable could not be saved due to a hardware failure.
+EFI_WRITE_PROTECTED    The variable in question is read-only.
+EFI_WRITE_PROTECTED    The variable in question cannot be deleted.
+EFI_SECURITY_VIOLATION The variable could not be written due to
+                       EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS or
+                       EFI_VARI ABLE_TIME_BASED_AUTHENTICATED_WRITE_ACESS being set, but the payload does NOT pass the validation check carried out by the firmware.
+
+EFI_NOT_FOUND         The variable trying to be updated or deleted was not found.
+EFI_UNSUPPORTED       This call is not supported by this platform at the time the call is made. The platform should describe this runtime service as unsupported at runtime via an EFI_RT_PROPERTIES_TABLE configuration table.
+
