@@ -1,6 +1,5 @@
 # VariableToolPkg
 
-
 ---
 
 # UEFI 變數應用程式開發筆記 (README)
@@ -25,21 +24,16 @@ EFI_STATUS GetVariable (
 
 ```
 
-
 * **參數重點**：
 * `VariableName`：變數名稱字串 (NULL 結尾)。
 * `VendorGuid`：廠商唯一識別碼。
 * `DataSize`：**輸入**時表示 Buffer 大小；**輸出**時表示變數實際資料大小。
 * `Data`：用於存放資料的緩衝區。
 
-
 * **關鍵用法 (技巧)**：
-1. 
-**取得資料大小 (探路)**：傳入 `Data = NULL` 且 `DataSize = 0`。若變數存在，會回傳 `EFI_BUFFER_TOO_SMALL`，並將實際大小填入 `DataSize` 。
-
+1. **取得資料大小 (探路)**：傳入 `Data = NULL` 且 `DataSize = 0`。若變數存在，會回傳 `EFI_BUFFER_TOO_SMALL`，並將實際大小填入 `DataSize` 。
 
 2. **讀取資料**：根據取得的大小 `AllocatePool` 分配記憶體，再呼叫一次 `GetVariable` 讀取內容。
-
 
 * **程式碼範例**：
 ```c
@@ -53,8 +47,6 @@ if (Status == EFI_BUFFER_TOO_SMALL) {
 }
 
 ```
-
-
 
 ### 1.2 `GetNextVariableName` - 遍歷變數
 
@@ -70,30 +62,19 @@ EFI_STATUS GetNextVariableName (
 
 ```
 
-
 * **參數重點**：
 * `VariableNameSize`：輸入緩衝區大小，若太小會被更新為所需大小。
-* 
-`VariableName`：**輸入**為上一個變數名稱 (或空字串開始)；**輸出**為下一個變數名稱 。
-
+* `VariableName`：**輸入**為上一個變數名稱 (或空字串開始)；**輸出**為下一個變數名稱 。
 
 * `VendorGuid`：輸出對應的 GUID。
 
 
 * **關鍵用法 (技巧)**：
-1. 
-**開始遍歷**：第一次呼叫時，`VariableName` 的第一個字元必須設為 `L'\0'` (空字串) 。
+1. **開始遍歷**：第一次呼叫時，`VariableName` 的第一個字元必須設為 `L'\0'` (空字串) 。
 
+2. **處理緩衝區不足**：若回傳 `EFI_BUFFER_TOO_SMALL`，需 `ReallocatePool` 擴大緩衝區並**重試** 。
 
-2. 
-**處理緩衝區不足**：若回傳 `EFI_BUFFER_TOO_SMALL`，需 `ReallocatePool` 擴大緩衝區並**重試** 。
-
-
-3. 
-**結束條件**：當回傳 `EFI_NOT_FOUND` 時表示遍歷結束 。
-
-
-
+3. **結束條件**：當回傳 `EFI_NOT_FOUND` 時表示遍歷結束 。
 
 * **程式碼範例**：
 ```c
@@ -126,39 +107,22 @@ EFI_STATUS SetVariable (
 
 
 * **參數重點**：
-* 
-`Attributes`：屬性位元遮罩 (如 `NON_VOLATILE`, `BOOTSERVICE_ACCESS`) 。
+* `Attributes`：屬性位元遮罩 (如 `NON_VOLATILE`, `BOOTSERVICE_ACCESS`) 。
 
-
-* 
-`DataSize`：資料大小。**設為 0 代表刪除變數** 。
-
-
-
+* `DataSize`：資料大小。**設為 0 代表刪除變數** 。
 
 * **屬性 (Attributes)**：
-* 
-`0x00000001` (NV): 非揮發性 (斷電保存) 。
+* `0x00000001` (NV): 非揮發性 (斷電保存) 。
 
+* `0x00000002` (BS): Boot Services 期間可存取 。
 
-* 
-`0x00000002` (BS): Boot Services 期間可存取 。
-
-
-* 
-`0x00000004` (RT): Runtime 期間可存取 (必須搭配 BS) 。
-
-
-
+* `0x00000004` (RT): Runtime 期間可存取 (必須搭配 BS) 。
 
 * **關鍵用法 (技巧)**：
-1. 
-**刪除變數**：`SetVariable(Name, Guid, 0, 0, NULL)` 。
+1. **刪除變數**：`SetVariable(Name, Guid, 0, 0, NULL)` 。
 
 
 2. **建立變數**：必須指定正確的 `Attributes`，否則可能建立失敗或無法保存。
-
-
 
 ---
 
@@ -180,15 +144,9 @@ EFI_STATUS SetVariable (
 
 
 * **常用顏色定義**：
-* 
-`EFI_WHITE` (0x0F), `EFI_BLACK` (0x00), `EFI_LIGHTGREEN` (0x0A), `EFI_BLUE` (0x01) 。
+* `EFI_WHITE` (0x0F), `EFI_BLACK` (0x00), `EFI_LIGHTGREEN` (0x0A), `EFI_BLUE` (0x01) 。
 
-
-* 
-`EFI_BACKGROUND_BLUE` (0x10), `EFI_BACKGROUND_BLACK` (0x00) 。
-
-
-
+* `EFI_BACKGROUND_BLUE` (0x10), `EFI_BACKGROUND_BLACK` (0x00)  。
 
 * **應用**：
 * `SetAttribute(gST->ConOut, EFI_WHITE | EFI_BACKGROUND_BLUE)`：製作藍底白字的選單 Highlight 效果。
@@ -221,16 +179,9 @@ EFI_STATUS SetVariable (
 
 
 * **按鍵判斷**：
-* 
-`ScanCode`: 處理特殊鍵 (如 `SCAN_UP`, `SCAN_DOWN`, `SCAN_ESC`) 。
+* `ScanCode`: 處理特殊鍵 (如 `SCAN_UP`, `SCAN_DOWN`, `SCAN_ESC`) 。
 
-
-* 
-`UnicodeChar`: 處理字元鍵 (如 'a', '1', Enter `CHAR_CARRIAGE_RETURN`) 。
-
-
-
-
+* `UnicodeChar`: 處理字元鍵 (如 'a', '1', Enter `CHAR_CARRIAGE_RETURN`) 。
 
 ---
 
@@ -248,8 +199,6 @@ EFI_STATUS SetVariable (
 * `%g`: GUID 格式 (EDKII 特有)。
 * `%02X`: 2位數 Hex (用於 Hex Dump)。
 
-
-
 ---
 
 ## 4. 程式邏輯流程圖 (簡易版)
@@ -263,8 +212,6 @@ EFI_STATUS SetVariable (
 * `WaitKey` 等待按鍵。
 * 根據按鍵更新索引 (`Index`) 或執行功能 (`switch-case`)。
 
-
-
 **功能：List All Variables**
 
 1. `GetNextVariableName` 迴圈掃描所有變數。
@@ -273,8 +220,6 @@ EFI_STATUS SetVariable (
 * 計算 `StartIndex` 與 `EndIndex`。
 * 印出該頁變數 (`Print` 配合 `%-40s` 對齊)。
 * 等待翻頁按鍵 (`PgUp`/`PgDn`)。
-
-
 
 **功能：Search by Name**
 
