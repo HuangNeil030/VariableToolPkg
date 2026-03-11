@@ -227,7 +227,10 @@ EFI_STATUS SetVariable (
 2. `GetNextVariableName` 迴圈掃描。
 3. 使用 `StrStr` 檢查名稱是否包含關鍵字。
 4. 若符合，呼叫 `GetVariable` 讀取資料並 `PrintVariableData` (綠色 Hex Dump)。
-____________________________________________________________
+
+
+
+---
 
 cd /d D:\BIOS\MyWorkSpace\edk2
 
